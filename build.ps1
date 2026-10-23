@@ -1,3 +1,6 @@
+# Build script for the Rounded Corners OBS plugin.
+# Written with AI assistance (Claude, ChatGPT); idea, testing and debugging by Stexible.
+
 $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $Work = Join-Path $Root '_build-work'
@@ -36,9 +39,9 @@ $Spec = Get-Content $SpecPath -Raw | ConvertFrom-Json
 $Spec.name = 'rounded-corners'
 $Spec.displayName = 'Rounded Corners for OBS'
 $Spec.version = '1.0.0'
-$Spec.author = 'Rounded Corners community project'
-$Spec.website = 'https://github.com/obsproject/obs-plugintemplate'
-$Spec.email = 'noreply@example.com'
+$Spec.author = 'Stexible (idea, testing), code written with Claude and ChatGPT'
+$Spec.website = 'https://github.com/Stexible/rounded-corners-obs'
+$Spec.email = 'real.stex@gmail.com'
 $SpecJson = $Spec | ConvertTo-Json -Depth 20
 [System.IO.File]::WriteAllText($SpecPath, $SpecJson, (New-Object System.Text.UTF8Encoding($false)))
 

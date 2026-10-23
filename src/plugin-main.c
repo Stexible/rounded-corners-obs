@@ -1,3 +1,11 @@
+/*
+ * Rounded Corners for OBS Studio
+ *
+ * Written by AI assistants (Claude by Anthropic, ChatGPT by OpenAI).
+ * Idea, testing and debugging: Stexible.
+ * https://github.com/Stexible/rounded-corners-obs
+ */
+
 #include <obs-module.h>
 #include <graphics/graphics.h>
 #include <math.h>

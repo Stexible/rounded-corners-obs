@@ -4,6 +4,9 @@
 
 A GPU filter for OBS Studio that rounds the corners of any video source (camera, window capture, image, browser, media). Each corner can have its own radius and its own curve shape, and the radius is relative to the source size, so the result looks the same on sources of any resolution.
 
+![Filter settings](docs/images/1.png)
+![Filter settings 2](docs/images/2.png)
+
 ## Features
 
 - Rounded-corner alpha mask rendered on the GPU (pixel shader), no CPU cost per frame.
@@ -61,21 +64,36 @@ With Sync off, every corner has its own radius and shape sliders.
 
 ## Building from source
 
-The project is based on [obs-plugintemplate](https://github.com/obsproject/obs-plugintemplate). You need Visual Studio 2022 and CMake.
+The repository contains only the plugin sources (`src/`, `data/`) and a build script. `build.ps1` downloads the official [obs-plugintemplate](https://github.com/obsproject/obs-plugintemplate), drops the plugin files into it, builds the plugin and packages it.
 
+Requirements:
+
+- Windows 10/11 x64
+- Visual Studio 2026 (v18) with the "Desktop development with C++" workload and Windows SDK 10.0.26100
+- CMake 3.28 or newer
+- Internet access (the first run downloads the template and the OBS build dependencies, which can take several minutes)
+
+Build:
+
+```powershell
+.\build.ps1
 ```
-cmake --preset windows-x64
-cmake --build --preset windows-x64 --config RelWithDebInfo
-```
 
-Adjust the preset names if your CMake presets differ.
+If PowerShell blocks the script, run `powershell -ExecutionPolicy Bypass -File .\build.ps1`.
 
-## Releasing
+The script cleans `_build-work/` and `dist/` on every run. The result is:
 
-1. Build in `RelWithDebInfo` (or `Release`).
-2. Collect the files into the folder layout from the Installation section.
-3. Zip the `obs-plugins` and `data` folders as `rounded-corners-windows-x64-<version>.zip`.
-4. Create a tag (`git tag v1.0.0 && git push --tags`) and attach the zip to a GitHub Release.
+- `rounded-corners-windows-x64-plugin.zip` in the repository root: a ready-to-install archive with the folder layout from the Installation section.
+- `_package-staging/`: the unpacked contents of that archive.
+
+All of these are ignored by git.
+
+
+## Credits and AI disclosure
+
+This project is "vibe-coded". The plugin code, the shader, the build script and the documentation were written by AI assistants: **Claude** (Anthropic) and **ChatGPT** (OpenAI). The human author, [Stexible](https://github.com/Stexible), supplied the idea and direction and did the testing and debugging.
+
+The plugin is provided as is, without warranty. If you rely on it, review the code first. Issues and pull requests are welcome.
 
 ## License
 
