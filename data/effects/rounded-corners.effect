@@ -1,0 +1,151 @@
+uniform float4x4 ViewProj;
+uniform texture2d image;
+uniform float2 image_size;
+uniform float4 corner_radii;
+uniform float4 corner_shape;
+
+sampler_state linear_clamp {
+    Filter   = Linear;
+    AddressU = Clamp;
+    AddressV = Clamp;
+};
+
+struct VertData {
+    float4 pos : POSITION;
+    float2 uv  : TEXCOORD0;
+};
+
+VertData VSDefault(VertData v_in)
+{
+    VertData v_out;
+    v_out.pos = mul(float4(v_in.pos.xyz, 1.0), ViewProj);
+    v_out.uv = v_in.uv;
+    return v_out;
+}
+
+/*
+ * Rounded corner based on a cubic Bezier curve.
+ *
+ * Coordinates are normalized to the corner box (0..1):
+ *   (0,0) = the sharp corner of the image
+ *   (1,1) = the center of the equivalent circular arc
+ *
+ * The curve goes from (0,1) to (1,0):
+ *   P0=(0,1)  P1=(0,1-k)  P2=(1-k,0)  P3=(1,0)
+ *
+ * shape = 0: circular-like corner (k ~ 0.5523)
+ * shape < 0: tighter / more cut corner
+ * shape > 0: flatter / squarer corner
+ */
+float2 bezier_point(float t, float k)
+{
+    float u = 1.0 - t;
+    float b0 = u * u * u;
+    float b1 = 3.0 * u * u * t;
+    float b2 = 3.0 * u * t * t;
+    float b3 = t * t * t;
+
+    float2 P0 = float2(0.0, 1.0);
+    float2 P1 = float2(0.0, 1.0 - k);
+    float2 P2 = float2(1.0 - k, 0.0);
+    float2 P3 = float2(1.0, 0.0);
+
+    return b0 * P0 + b1 * P1 + b2 * P2 + b3 * P3;
+}
+
+/*
+ * p is measured in pixels from the corner, into the image.
+ * Returns signed distance in pixels:
+ *   > 0 outside the shape (transparent)
+ *   < 0 inside the shape (visible)
+ */
+float corner_distance(float2 p, float radius, float shape)
+{
+    if (radius <= 0.001)
+        return -1.0;
+
+    shape = clamp(shape, -1.0, 1.0);
+    /*
+     * shape -1 -> k = 0.0   (straight diagonal cut)
+     * shape  0 -> k = 0.5523 (circular arc)
+     * shape +1 -> k = 1.0   (almost square corner)
+     */
+    const float K_CIRCLE = 0.55228475;
+    float k = (shape < 0.0)
+        ? K_CIRCLE * (1.0 + shape)
+        : K_CIRCLE + shape * (1.0 - K_CIRCLE);
+
+    float2 q = p / radius;
+
+    float best_dist = 1e10;
+    float best_side = 1.0;
+
+    float2 a = bezier_point(0.0, k);
+
+    for (int i = 1; i <= 32; i++) {
+        float2 b = bezier_point((float)i / 32.0, k);
+
+        float2 ba = b - a;
+        float2 qa = q - a;
+
+        float h = clamp(dot(qa, ba) / max(dot(ba, ba), 1e-8), 0.0, 1.0);
+        float d = length(qa - ba * h);
+
+        if (d < best_dist) {
+            best_dist = d;
+            /*
+             * cross > 0: pixel is on the side of the arc center (inside)
+             * cross < 0: pixel is on the side of the sharp corner (outside)
+             */
+            float cr = ba.x * qa.y - ba.y * qa.x;
+            best_side = (cr > 0.0) ? -1.0 : 1.0;
+        }
+
+        a = b;
+    }
+
+    return best_side * best_dist * radius;
+}
+
+float4 PSRounded(VertData v_in) : TARGET
+{
+    float2 uv = v_in.uv;
+    float2 p = uv * image_size;
+    float2 size = image_size;
+
+    float4 r = clamp(corner_radii, 0.0,
+                     min(size.x, size.y) * 0.5);
+    float4 c = clamp(corner_shape, -1.0, 1.0);
+
+    float distance_to_edge = -1.0;
+
+    if (r.x > 0.001 && p.x < r.x && p.y < r.x) {
+        distance_to_edge = corner_distance(p, r.x, c.x);
+    } else if (r.y > 0.001 &&
+               p.x > size.x - r.y && p.y < r.y) {
+        distance_to_edge = corner_distance(
+            float2(size.x - p.x, p.y), r.y, c.y);
+    } else if (r.z > 0.001 &&
+               p.x > size.x - r.z && p.y > size.y - r.z) {
+        distance_to_edge = corner_distance(
+            size - p, r.z, c.z);
+    } else if (r.w > 0.001 &&
+               p.x < r.w && p.y > size.y - r.w) {
+        distance_to_edge = corner_distance(
+            float2(p.x, size.y - p.y), r.w, c.w);
+    }
+
+    float alpha_mask = 1.0 - smoothstep(-0.75, 0.75, distance_to_edge);
+    float4 color = image.Sample(linear_clamp, uv);
+    color.a *= alpha_mask;
+    return color;
+}
+
+technique Draw
+{
+    pass
+    {
+        vertex_shader = VSDefault(v_in);
+        pixel_shader  = PSRounded(v_in);
+    }
+}

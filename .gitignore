@@ -1,0 +1,40 @@
+# Build directories
+_build-work/
+build/
+build_*/
+out/
+dist/
+
+# Local packaging directories
+_package-staging/
+package-*/
+
+# Generated archives and release packages
+*.zip
+
+# Compiler / linker output
+*.obj
+*.o
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.dll
+*.exe
+
+# CMake
+CMakeUserPresets.json
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+
+# IDE and editor files
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# OS files
+.DS_Store
+Thumbs.db
