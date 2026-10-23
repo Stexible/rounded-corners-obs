@@ -1,4 +1,4 @@
-# Rounded Corners для OBS Studio
+# Скруглённые углы для истоников OBS Studio
 
 [English version](README.md)
 
