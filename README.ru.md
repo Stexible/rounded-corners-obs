@@ -1,4 +1,4 @@
-# Скруглённые углы для истоников OBS Studio
+# Скруглённые углы для источников OBS Studio
 
 [English version](README.md)
 
